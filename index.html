@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Act. 3.4 Analizador sintáctico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1500px;
+            background: white;
+            padding: 50px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .editor-wrapper {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 48%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .table-wrapper {
+            width: 48%;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007BFF;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .result-message {
+            margin-top: 20px;
+            font-size: 16px;
+            display: none; /* Ocultamos el mensaje por defecto */
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .incorrect {
+            color: red;
+        }
+
+        .summary {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="editor-wrapper">
+        <textarea id="codeArea" placeholder="Escribe tu código aquí..."></textarea>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>TOKEN</th>
+                        <th>Palabra Reservada</th>
+                        <th>Identificador</th>
+                        <th>Variable</th>
+                        <th>Símbolo</th>
+                        <th>Número</th> <!-- Nueva columna para los números -->
+                        <th>Tipo de token</th>
+                    </tr>
+                </thead>
+                <tbody id="tokenTableBody">
+                    <!-- Aquí se llenarán los resultados -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bottom-section">
+        <button onclick="lexicalAnalysis()">Análisis Léxico</button>
+        <button onclick="clearAll()">Limpiar</button>
+        <button onclick="syntaxAnalysis()">Análisis Sintáctico</button>
+    </div>
+
+    <div id="resultMessage" class="result-message"></div>
+    <div id="summary" class="summary"></div> <!-- Aquí se mostrará el resumen -->
+</div>
+
+<script>
+function lexicalAnalysis() {
+    const code = document.getElementById('codeArea').value;
+    const tokens = code.split(/\s+/); // Separar las palabras por espacios
+
+    const tokenTypes = {
+        'programa': ['X', '', '', '', '', '', 'palabra reservada'],
+        'int': ['X', '', '', '', '', '', 'palabra reservada'],
+        'read': ['X', '', '', '', '', '', 'palabra reservada'],
+        'printf': ['X', '', '', '', '', '', 'palabra reservada'],
+        'end': ['X', '', '', '', '', '', 'palabra reservada'],
+        'a': ['', '', 'X', '', '', '', 'variable'],
+        'b': ['', '', 'X', '', '', '', 'variable'],
+        'c': ['', '', 'X', '', '', '', 'variable'],
+        '{': ['', '', '', '', 'X', '', 'llave de apertura'],
+        '}': ['', '', '', '', 'X', '', 'llave de cierre'],
+        '(': ['', '', '', '', 'X', '', 'parentesis de apertura'],
+        ')': ['', '', '', '', 'X', '', 'parentesis de cierre'],
+        ';': ['', '', '', '', 'X', '', 'punto y coma'],
+        '"la suma es"': ['', 'X', '', '', '', '', 'identificador'],
+        'suma': ['', 'X', '', '', '', '', 'identificador'],
+    };
+
+    let tokenTable = '';
+    let totalTokens = 0;
+    let totalPalabrasReservadas = 0;
+    let totalIdentificadores = 0;
+    let totalVariables = 0;
+    let totalNumeros = 0; // Contador para los números
+
+    tokens.forEach(token => {
+        let tokenInfo = tokenTypes[token] || ['', '', '', '', '', '', 'no reconocido'];
+        
+        // Verificar si el token es un número
+        if (!isNaN(token)) {
+            tokenInfo = ['', '', '', '', '', 'X', 'número'];
+            totalNumeros++;
+        }
+
+        const row = `<tr><td>${token}</td>
+                     <td>${tokenInfo[0]}</td>
+                     <td>${tokenInfo[1]}</td>
+                     <td>${tokenInfo[2]}</td>
+                     <td>${tokenInfo[3]}</td>
+                     <td>${tokenInfo[5]}</td> <!-- Columna para número -->
+                     <td>${tokenInfo[6]}</td></tr>`;
+        tokenTable += row;
+
+        // Contar los tokens
+        totalTokens++;
+        if (tokenInfo[6] === 'palabra reservada') totalPalabrasReservadas++;
+        if (tokenInfo[6] === 'identificador') totalIdentificadores++;
+        if (tokenInfo[6] === 'variable') totalVariables++;
+    });
+
+    document.getElementById('tokenTableBody').innerHTML = tokenTable;
+
+    // Mostrar resumen
+    const summary = `
+        <p>Total de tokens: ${totalTokens}</p>
+        <p>Total de palabras reservadas: ${totalPalabrasReservadas}</p>
+        <p>Total de identificadores: ${totalIdentificadores}</p>
+        <p>Total de variables: ${totalVariables}</p>
+        <p>Total de números: ${totalNumeros}</p> <!-- Mostrar total de números -->
+    `;
+    document.getElementById('summary').innerHTML = summary;
+}
+
+function clearAll() {
+    document.getElementById('codeArea').value = '';
+    document.getElementById('tokenTableBody').innerHTML = '';
+    document.getElementById('resultMessage').innerHTML = '';
+    document.getElementById('resultMessage').style.display = 'none';
+    document.getElementById('summary').innerHTML = ''; // Limpiar el resumen
+}
+
+function syntaxAnalysis() {
+    const code = document.getElementById('codeArea').value;
+
+    // Ajustar la expresión regular para aceptar saltos de línea y espacios en blanco
+    const validCodePattern = /programa\s+\w+\s*\(\s*\)\s*\{\s*int\s*read\s+[a-zA-Z_]\w*\s*;\s*read\s+[a-zA-Z_]\w*\s*;\s*[a-zA-Z_]\w*\s*=\s*[a-zA-Z_]\w*\s*\+\s*[a-zA-Z_]\w*\s*;\s*printf\s*\(\s*"la suma es"\s*\);\s*end\s*;\s*\}/;
+
+    const isValid = validCodePattern.test(code);
+    const resultMessage = document.getElementById('resultMessage');
+    
+    if (isValid) {
+        resultMessage.innerHTML = 'Código completo correctamente.';
+        resultMessage.className = 'result-message correct'; 
+    } else {
+        resultMessage.innerHTML = 'El código está incorrecto.';
+        resultMessage.className = 'result-message incorrect'; 
+    }
+    
+    resultMessage.style.display = 'block';
+}
+</script>
+
+</body>
+</html>
